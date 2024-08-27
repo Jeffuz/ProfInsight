@@ -26,7 +26,7 @@ const GetResponse = async (
       },
       body: JSON.stringify(data),
     };
-    return await fetch("/api/genMsg", headers)
+    return await fetch("/api/chat", headers)
       .then((response) => response.json())
       .catch((e) => {
         console.log(e);
@@ -38,8 +38,6 @@ const Chatbox = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
   const [openModal, setOpenModal] = useState<boolean>(false);
-  const [selectedLanguage, setSelectedLanguage] = useState("English")
-
 
   // Auto scroll if message overflow
   const scrollRef = useRef<HTMLSpanElement | null>(null);
