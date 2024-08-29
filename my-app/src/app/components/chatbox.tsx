@@ -16,9 +16,9 @@ interface Message {
 
 // Fetching response from gen ai endpoint
 const GetResponse = async (
-    messageToSend: string
+    messages: Message[]
   ): Promise<{ success: boolean; body?: { message: { content: string } } }> => {
-    const data = { message: messageToSend };
+    const data = { message: messages };
     const headers = {
       method: "POST",
       headers: {
@@ -26,16 +26,39 @@ const GetResponse = async (
       },
       body: JSON.stringify(data),
     };
+
     return await fetch("/api/chat", headers)
-      .then((response) => response.json())
-      .catch((e) => {
-        console.log(e);
-        return { success: false };
-      });
+    .then(async (data) => {
+      const reader = data.body.getReader();
+      const decoder = new TextDecoder();
+
+      let result = ''
+
+      return reader.read()
+      .then(function processText({done, value}) {
+            if (done)
+              return result
+            
+            const text = decoder.decode(value || new Uint8Array(), {stream: true})
+            result += text
+
+            return reader.read().then(processText)
+      }
+      )
+    })
+    .then(text => {return {success: true, body: text}})
+    .catch((e) => {
+      console.log(e.text);
+      return { success: false };
+    });
   };
 
 const Chatbox = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const initialMessage:Message = {
+    text: "Hello, This is your Professor AI Chatbot assistant, how can I help you?",
+    sender: "other"
+  }
+  const [messages, setMessages] = useState<Message[]>([initialMessage]);
   const [input, setInput] = useState<string>("");
   const [openModal, setOpenModal] = useState<boolean>(false);
 
@@ -53,15 +76,17 @@ const Chatbox = () => {
     // Check for no white space
     if (input.trim()) {
       const userMessage: Message = { text: input, sender: "user" };
-      setMessages([...messages, userMessage]);
+      const newMessage = [...messages, userMessage]
+      setMessages(newMessage);
       setInput("");
 
       // Take response.content
-      const response = await GetResponse(input);
-
+      const response = await GetResponse(newMessage);
+      console.log(response);
+      
       if (response.success && response.body) {
         const aiResponse: Message = {
-          text: response.body.message.content,
+          text: String(response.body),
           sender: "other",
         };
         setMessages((prevMessages) => [...prevMessages, aiResponse]);
@@ -84,7 +109,7 @@ const Chatbox = () => {
         {/* Logo */}
         <div className="flex items-center gap-3">
           <MdMessage size={30} />
-          <h2 className="text-xl font-medium">AI Customer Support</h2>
+          <h2 className="text-xl font-medium">Professor Review Assistant</h2>
         </div>
         <div className="inline-flex">
           {/* Open Modal for RAG */}
@@ -111,7 +136,7 @@ const Chatbox = () => {
             key={index}
             // w-max: set max width based on child
             // max-w-75%: max possible width of message
-            className={`flex w-max max-w-[75%] rounded-lg px-3 py-2 text-sm ${
+            className={`flex w-max max-w-[75%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
               // user messages are blue, other is gray
               msg.sender === "user"
                 ? "ml-auto bg-[#F5851E] text-white"

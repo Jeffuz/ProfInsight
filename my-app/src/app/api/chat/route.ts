@@ -46,17 +46,19 @@ export async function POST(req: NextRequest) {
   const openai = new OpenAI({apiKey: process.env.OPEN_AI_KEY});
 
 
-  const index = pc.index('rag');
-  
-  const text = body.message
+  const index = pc.index('rag').namespace("ns1");
 
+  const text = body.message[body.message.length - 1]
+  console.log(text);
+  
   // Read Data from database
-  const embedding = await OpenAI.Embeddings.create({
-    model: 'text-embeddings-3-small',
-    input: text,
+  const embedding = await openai.embeddings.create({
+    model: 'text-embedding-3-small',
+    input: text.text,
     encoding_format: 'float',
   })
 
+  
   const results = await index.query({
     topK: 3,
     includeMetadata: true,
@@ -65,10 +67,13 @@ export async function POST(req: NextRequest) {
 
   let resultString = ''
 
+  
   // Create Return String / embedding
   results.matches.forEach((item : any) => {
+    console.log(item.metadata);
+    
     resultString += `\n
-    Professor: ${item.id}
+    Professor: ${item.metadata.name}
     Review: ${item.metadata.review}
     Subject: ${item.metadata.subject}
     Stars: ${item.metadata.stars}
@@ -76,8 +81,8 @@ export async function POST(req: NextRequest) {
     `
   })
 
-  const lastMessage = text
-  const lastMessageContent = lastMessage.content + resultString
+  const lastMessage = text.text
+  const lastMessageContent = lastMessage + resultString
 
   // Perform Chat
   const completion = await openai.chat.completions.create({
