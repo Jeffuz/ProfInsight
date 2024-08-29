@@ -5,6 +5,7 @@ import { useState, FormEvent } from "react";
 const Ragsubmit = () => {
   const [url, setUrl] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string>("")
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -12,7 +13,7 @@ const Ragsubmit = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/rag", {
+      const response = await fetch("/api/urlUpload", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -22,8 +23,12 @@ const Ragsubmit = () => {
 
       await response.json();
       setUrl("");
+      setSuccessMessage("Successfully Uploaded Data");
+      
+
     } catch (error) {
       console.error("Failed to submit URL:", error);
+      setSuccessMessage("Failed To Upload Data");
     } finally {
       // Stop loading state
       setIsLoading(false);
@@ -63,6 +68,7 @@ const Ragsubmit = () => {
           disabled={isLoading}
         />
 
+        <label className="text-lg text-gray-600">{successMessage}</label>
         {/* Button */}
         <button
           type="submit"

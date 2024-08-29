@@ -3,9 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { metadata } from '../../layout';
 
-const pc = new Pinecone({
-    apiKey: 'YOUR_API_KEY'
-});
+
 
 const systemPrompt = `
 You are an AI assistant specializing in helping students find the best professors for their courses. Your knowledge is based on a comprehensive database of professor reviews and ratings. For each query, you will use RAG (Retrieval-Augmented Generation) to provide information on the top 3 most relevant professors.
@@ -46,7 +44,7 @@ export async function POST(req: NextRequest) {
   const openai = new OpenAI({apiKey: process.env.OPEN_AI_KEY});
 
 
-  const index = pc.index('rag').namespace("ns1");
+  const index = pc.index('rag').namespace("rateProfData");
 
   const text = body.message[body.message.length - 1]
   console.log(text);
@@ -71,12 +69,13 @@ export async function POST(req: NextRequest) {
   // Create Return String / embedding
   results.matches.forEach((item : any) => {
     console.log(item.metadata);
-    
+    //Subject: ${item.metadata.subject}
     resultString += `\n
     Professor: ${item.metadata.name}
-    Review: ${item.metadata.review}
-    Subject: ${item.metadata.subject}
-    Stars: ${item.metadata.stars}
+    Stars: ${item.metadata.rating}
+    Notable_Features: ${item.metadata.tags}
+    Reviews: ${item.metadata.reviews}
+
     \n\n
     `
   })
