@@ -23,6 +23,7 @@ const AdvancedSearch = ({ onSubmit }: any) => {
       query = "Find professors matching your criteria.";
     }
 
+    // Reset fields
     setName("");
     setDepartment("");
     setCourse("");
