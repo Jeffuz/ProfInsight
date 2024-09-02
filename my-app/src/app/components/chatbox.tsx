@@ -16,50 +16,52 @@ interface Message {
 
 // Fetching response from gen ai endpoint
 const GetResponse = async (
-    messages: Message[]
-  ): Promise<{ success: boolean; body?: { message: { content: string } } }> => {
-    const data = { message: messages };
-    const headers = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    };
+  messages: Message[]
+): Promise<{ success: boolean; body?: { message: { content: string } } }> => {
+  const data = { message: messages };
+  const headers = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  };
 
-    return await fetch("/api/chat", headers)
+  return await fetch("/api/chat", headers)
     .then(async (data) => {
       const reader = data.body.getReader();
       const decoder = new TextDecoder();
 
-      let result = ''
+      let result = "";
 
-      return reader.read()
-      .then(function processText({done, value}) {
-            if (done)
-              return result
-            
-            const text = decoder.decode(value || new Uint8Array(), {stream: true})
-            result += text
+      return reader.read().then(function processText({ done, value }) {
+        if (done) return result;
 
-            return reader.read().then(processText)
-      }
-      )
+        const text = decoder.decode(value || new Uint8Array(), {
+          stream: true,
+        });
+        result += text;
+
+        return reader.read().then(processText);
+      });
     })
-    .then(text => {return {success: true, body: text}})
+    .then((text) => {
+      return { success: true, body: text };
+    })
     .catch((e) => {
       console.log(e.text);
       return { success: false };
     });
-  };
+};
 
 const Chatbox = () => {
-  const initialMessage:Message = {
+  const initialMessage: Message = {
     text: "Hello, This is your Professor AI Chatbot assistant, how can I help you?",
-    sender: "other"
-  }
+    sender: "other",
+  };
   const [messages, setMessages] = useState<Message[]>([initialMessage]);
   const [input, setInput] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
   const [openModal, setOpenModal] = useState<boolean>(false);
 
   // Auto scroll if message overflow
@@ -76,23 +78,32 @@ const Chatbox = () => {
     // Check for no white space
     if (input.trim()) {
       const userMessage: Message = { text: input, sender: "user" };
-      const newMessage = [...messages, userMessage]
+      const newMessage = [...messages, userMessage];
       setMessages(newMessage);
       setInput("");
+      setLoading(true);
 
-      // Take response.content
+      // Add loading message
+      const loadingMessage: Message = { text: "...", sender: "other" };
+      setMessages((prevMessages) => [...prevMessages, loadingMessage]);
+
+      // Fetch the response from the backend
       const response = await GetResponse(newMessage);
-      console.log(response);
-      
+      setLoading(false);
+
+      // Update the messages list, replacing the loading message with the actual response
       if (response.success && response.body) {
         const aiResponse: Message = {
           text: String(response.body),
           sender: "other",
         };
-        setMessages((prevMessages) => [...prevMessages, aiResponse]);
+        setMessages((prevMessages) => [
+          ...prevMessages.slice(0, -1), // Remove the last (loading) message
+          aiResponse,
+        ]);
       } else {
         setMessages((prevMessages) => [
-          ...prevMessages,
+          ...prevMessages.slice(0, -1), // Remove the last (loading) message
           {
             text: "There was an error with generating our statement",
             sender: "other",
@@ -114,18 +125,19 @@ const Chatbox = () => {
         <div className="inline-flex">
           {/* Open Modal for RAG */}
           <div className="flex items-center p-1">
-              <button onClick={() => setOpenModal(true)} className="rounded-full p-2 hover:bg-white hover:text-[#F5851E] text-white transition duration-300">
-                <LuTextCursorInput  size={30} />
-              </button>
-              <Modal open={openModal} onClose={() => setOpenModal(false)}>
-                <div className="px-2 py-6">
-                  <Ragsubmit />
-                </div>
-              </Modal>
-            </div>
+            <button
+              onClick={() => setOpenModal(true)}
+              className="rounded-full p-2 hover:bg-white hover:text-[#F5851E] text-white transition duration-300"
+            >
+              <LuTextCursorInput size={30} />
+            </button>
+            <Modal open={openModal} onClose={() => setOpenModal(false)}>
+              <div className="px-2 py-6">
+                <Ragsubmit />
+              </div>
+            </Modal>
           </div>
-
-
+        </div>
       </div>
 
       {/* Message box */}

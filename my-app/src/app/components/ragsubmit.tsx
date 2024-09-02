@@ -5,7 +5,7 @@ import { useState, FormEvent } from "react";
 const Ragsubmit = () => {
   const [url, setUrl] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [successMessage, setSuccessMessage] = useState<string>("")
+  const [successMessage, setSuccessMessage] = useState<string>("");
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -24,8 +24,6 @@ const Ragsubmit = () => {
       await response.json();
       setUrl("");
       setSuccessMessage("Successfully Uploaded Data");
-      
-
     } catch (error) {
       console.error("Failed to submit URL:", error);
       setSuccessMessage("Failed To Upload Data");
@@ -38,17 +36,18 @@ const Ragsubmit = () => {
   return (
     <div className="max-w-lg mx-auto">
       {/* Title */}
-      <h1 className="text-3xl font-bold mb-4 text-center text-[#F5851E]">
-        Submit a Website for Processing
-      </h1>
+      <div className="text-3xl font-bold mb-4 text-center text-[#F5851E]">
+        Submit a Rate My Professor Link for Processing
+      </div>
 
       {/* Instructions */}
-      <p className="text-gray-700 mb-6 text-center">
-        Submit a website URL to make it searchable. Our system will analyze and
-        index the content based on your selected task, making it easier to find
-        specific information when searching. Perfect for creating a searchable
-        knowledge base.
-      </p>
+      <div className="text-gray-700 mb-6 text-center">
+        Submit a Rate My Professor link to make it searchable. Our system will
+        analyze and index the content based on your selected task, making it
+        easier to find specific information about professors. Perfect for
+        creating a searchable knowledge base tailored to student reviews and
+        ratings.
+      </div>
 
       {/* Submit URL and Task */}
       <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
