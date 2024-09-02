@@ -1,12 +1,11 @@
-"use client";
-
 import { useState, useRef, useEffect, FormEvent, ChangeEvent } from "react";
 import { FaPaperPlane } from "react-icons/fa";
 import { MdMessage } from "react-icons/md";
-import { LuTextCursorInput } from "react-icons/lu";
+import { LuSearch, LuTextCursorInput } from "react-icons/lu";
 
 import Modal from "./modal";
 import Ragsubmit from "./ragsubmit";
+import AdvancedSearch from "./advancedSearch";
 
 // Define message object
 interface Message {
@@ -63,6 +62,7 @@ const Chatbox = () => {
   const [input, setInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [openModal, setOpenModal] = useState<boolean>(false);
+  const [openSearchModal, setOpenSearchModal] = useState<boolean>(false);
 
   // Auto scroll if message overflow
   const scrollRef = useRef<HTMLSpanElement | null>(null);
@@ -71,6 +71,42 @@ const Chatbox = () => {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+
+  // Handle Advanced Search Submission
+  const handleAdvancedSearchSubmit = async (formattedQuery: string) => {
+    const userMessage: Message = { text: formattedQuery, sender: "user" };
+    setMessages((prevMessages) => [...prevMessages, userMessage]);
+    setOpenSearchModal(false);
+
+    // Send Message loading
+    setLoading(true);
+    const loadingMessage: Message = { text: "...", sender: "other" };
+    setMessages((prevMessages) => [...prevMessages, loadingMessage]);
+
+    // Get backend response
+    const response = await GetResponse([...messages, userMessage]);
+    setLoading(false);
+
+    // Update the messages list, replacing the loading message with the actual response
+    if (response.success && response.body) {
+      const aiResponse: Message = {
+        text: String(response.body),
+        sender: "other",
+      };
+      setMessages((prevMessages) => [
+        ...prevMessages.slice(0, -1), // Remove the last (loading) message
+        aiResponse,
+      ]);
+    } else {
+      setMessages((prevMessages) => [
+        ...prevMessages.slice(0, -1), // Remove the last (loading) message
+        {
+          text: "There was an error with generating our statement",
+          sender: "other",
+        },
+      ]);
+    }
+  };
 
   // Sending message
   const handleSend = async (e: FormEvent) => {
@@ -123,6 +159,24 @@ const Chatbox = () => {
           <h2 className="text-xl font-medium">Professor Review Assistant</h2>
         </div>
         <div className="inline-flex">
+          {/* Open Modal for advanced Search */}
+          <div className="flex items-center p-1">
+            <button
+              onClick={() => setOpenSearchModal(true)}
+              className="rounded-full p-2 hover:bg-white hover:text-[#F5851E] text-white transition duration-300"
+            >
+              <LuSearch size={30} />
+            </button>
+            <Modal
+              open={openSearchModal}
+              onClose={() => setOpenSearchModal(false)}
+            >
+              <div className="px-2 py-6">
+                <AdvancedSearch onSubmit={handleAdvancedSearchSubmit} />
+              </div>
+            </Modal>
+          </div>
+
           {/* Open Modal for RAG */}
           <div className="flex items-center p-1">
             <button
@@ -146,10 +200,7 @@ const Chatbox = () => {
           // Messages
           <div
             key={index}
-            // w-max: set max width based on child
-            // max-w-75%: max possible width of message
             className={`flex w-max max-w-[75%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
-              // user messages are blue, other is gray
               msg.sender === "user"
                 ? "ml-auto bg-[#F5851E] text-white"
                 : "bg-gray-200"
@@ -165,7 +216,6 @@ const Chatbox = () => {
       {/* Submission */}
       <div className="border-t px-4 py-3">
         <form onSubmit={handleSend} className="flex items-center w-full gap-2">
-          {/* Input for textfield */}
           <input
             placeholder="Type your message..."
             value={input}
@@ -174,7 +224,6 @@ const Chatbox = () => {
             }}
             className="flex px-4 py-2 border rounded w-full focus:outline-none"
           />
-          {/* Submit button */}
           <button
             type="submit"
             className="p-2 bg-[#F5851E] hover:bg-[#F5851E]/80 transition duration-300 text-white rounded-full"
